@@ -1,7 +1,6 @@
 package com.pechi.poker.deck
 
 import java.util.*
-import kotlin.text.Typography.times
 
 
 enum class PokerSuits {
@@ -9,7 +8,7 @@ enum class PokerSuits {
 }
 
 enum class PokerNumber {
-    UNO, DOS, TRES, CUATRO, CINCO, SEIS, SIETE, OCHO, NUEVE, DIEZ, J, K, Q, A
+    DOS, TRES, CUATRO, CINCO, SEIS, SIETE, OCHO, NUEVE, DIEZ, J, K, Q, A
 }
 
 enum class PokerHand {
@@ -29,7 +28,7 @@ class PokerDeck {
     private fun shuffleDeck(times: Int, deck: Deque<PokerCard>): Deque<PokerCard> {
         var _deck = deck
         repeat(times) {
-            _deck = _deck.shuffled().toCollection(LinkedList())
+            _deck = _deck.toList().shuffled().toCollection(LinkedList())
         }
         return _deck
     }
@@ -41,10 +40,14 @@ class PokerDeck {
     }
 
     private fun generateDeck(): Deque<PokerCard> {
-        return PokerSuits.values().zip(PokerNumber.values()) { suit: PokerSuits, number: PokerNumber ->
-            PokerCard(suit, number)
+        return PokerNumber.values().flatMap { num ->
+            PokerSuits.values().map { suit ->
+                PokerCard(suit, num)
+            }
         }.toCollection(LinkedList())
+
     }
+
 }
 
 data class PokerCard(val suits: PokerSuits, val number: PokerNumber)
