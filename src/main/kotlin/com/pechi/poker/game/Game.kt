@@ -64,7 +64,7 @@ data class Player(val name: String, var cards: List<PokerCard>, var hand: PokerH
                 Chip("25", 25, coin25),
                 Chip("10", 10, coin10)
         )
-        val (coins, _, _) = m(wants.size - 1, amount)
+        val (coins, _, _) = dist(wants.size - 1, amount)
 
         val groupedCoin = coins.groupBy(Chip::name)
         return Bet(groupedCoin.getOrElse("100") { emptyList() }.size,
@@ -83,12 +83,12 @@ data class Player(val name: String, var cards: List<PokerCard>, var hand: PokerH
     )
 
 
-    fun m(i: Int, w: Int): Triple<MutableList<Chip>, Int, Int> {
+    fun dist(i: Int, w: Int): Triple<MutableList<Chip>, Int, Int> {
         val chosen = mutableListOf<Chip>()
         if (i < 0 || w == 0) return Triple(chosen, 0, 0)
-        else if (wants[i].weight > w) return m(i - 1, w)
-        val (l0, w0, v0) = m(i - 1, w)
-        var (l1, w1, v1) = m(i - 1, w - wants[i].weight)
+        else if (wants[i].weight > w) return dist(i - 1, w)
+        val (l0, w0, v0) = dist(i - 1, w)
+        var (l1, w1, v1) = dist(i, w - wants[i].weight)
         v1 += wants[i].value
         if (v1 > v0) {
             l1.add(wants[i])
@@ -181,7 +181,7 @@ data class GameMatch(var players: List<Player>) {
         }
     }
 
-    fun raise(player: Player, amount:Int): Unit {
+    fun raise(player: Player, amount: Int): Unit {
         if (game_stage == GAME_STAGE.CALL_RAISE_FOLD ||
                 game_stage == GAME_STAGE.WAIT_FOR_BETS) {
             val bet = player.placeBet(amount + lastBet!!.totalMoney())
