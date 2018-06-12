@@ -2,7 +2,7 @@ package com.pechi.poker.game
 
 import com.pechi.poker.deck.PokerCard
 import com.pechi.poker.deck.PokerDeck
-import com.pechi.poker.deck.PokerHand
+import com.pechi.poker.deck.PokerHandType
 
 data class Game(val deck: PokerDeck, val players: List<Player>, var state: State, private var moves: List<Move>) {
 
@@ -248,10 +248,48 @@ data class GameMatch(var players: List<Player>) {
             droppedCard += dropCard
             mGame.drawCard()
             game_stage = GAME_STAGE.WAIT_FOR_BETS
+            currentRaises = 0
             return dropCard
         }
         return null
     }
 }
 
+data class PokerHand(val type: PokerHandType, val priority: Int)
+
+interface ShowdownHand {
+    fun analyze(player: Player): PokerHand?
+    fun getType(): PokerHandType
+    fun untie(players: List<Player>): Player?
+}
+
+class Showdown(val showdownHands: List<ShowdownHand>, val players: List<Player>) {
+
+    fun ItsGoTime(): Player? {
+        val playerHandPair = players.map { player ->
+            val hands = showdownHands.mapNotNull { it.analyze(player) }
+                    .sortedByDescending { it.priority }
+            player to hands
+        }.sortedByDescending {
+            it.second.first().priority
+        }
+        val bestHandList: List<Pair<Player, List<PokerHand>>> = playerHandPair
+                .groupBy {
+                    it.second.first().priority
+                }.toSortedMap(compareByDescending { it })[0].orEmpty()
+
+        return if (bestHandList.size == 1) {
+            bestHandList.first().first
+        } else {
+            val untie = getShowdownHandForPokerHand(bestHandList.first().second.first())
+                    ?.untie(bestHandList.map { it.first })
+            untie
+        }
+    }
+
+    private fun getShowdownHandForPokerHand(pokerhand: PokerHand): ShowdownHand? {
+        return showdownHands.find { it.getType() == pokerhand.type }
+    }
+
+}
 

@@ -11,7 +11,7 @@ enum class PokerNumber {
     DOS, TRES, CUATRO, CINCO, SEIS, SIETE, OCHO, NUEVE, DIEZ, J, K, Q, A
 }
 
-enum class PokerHand {
+enum class PokerHandType {
     CARTA_ALTA, PAR, DOBLE_PAR, TRIO, ESCALERA, COLOR, FULL, POKER, ESCALERA_COLOR, ROYAL
 }
 
