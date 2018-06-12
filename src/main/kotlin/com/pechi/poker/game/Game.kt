@@ -37,14 +37,13 @@ data class Game(val deck: PokerDeck, val players: List<Player>, var state: State
     }
 }
 
-
 enum class MoveType {
     BOTAR, JUGAR, APOSTAR
 }
 
 data class Bet(val coin100: Int = 0, val coin50: Int = 0, val coin25: Int = 0, val coin10: Int = 0) {
     fun totalMoney(): Int {
-        return coin100 + coin50 + coin25 + coin10
+        return (coin100 * 100) + (coin50 * 50) + (coin25 * 25) + (coin10 * 10)
     }
 }
 
@@ -118,9 +117,12 @@ data class GameMatch(var players: List<Player>) {
         START_BETS, WAIT_FOR_BETS, DEALING, BLINDS, CALL_RAISE_FOLD, HIGHS, LOWS
     }
 
+    val MAX_RAISE_NUM = players.size
     val MAX_CARDS_TABLE = 5
     val START_CARDS_TABLE = 3
-    var minBetAmount = 20
+    var minStartBetAmount = 20
+    var minCurrentBetAmount = minStartBetAmount
+    var currentRaises = 0
     val mDeck = PokerDeck()
     val mGame: Game = Game(mDeck, players, State.newState(mDeck), emptyList())
     var droppedCard: List<PokerCard> = emptyList()
@@ -128,7 +130,7 @@ data class GameMatch(var players: List<Player>) {
     var low: Player = players[1]
     var game_stage = GAME_STAGE.WAIT_FOR_BETS
     var bets: MutableMap<Player, MutableList<Bet>> = HashMap()
-    var lastBet: Bet? = null
+    var totalBetToCall: Int = minStartBetAmount
     var turnPlayer: Int = 0
 
     fun start() {
@@ -169,7 +171,8 @@ data class GameMatch(var players: List<Player>) {
                 game_stage == GAME_STAGE.WAIT_FOR_BETS) {
             game_stage = GAME_STAGE.CALL_RAISE_FOLD
             calculateNextPlayerTurn()
-            placeBet(player, lastBet!!)
+            val sum = bets.getOrElse(player) { emptyList<Bet>() }.map { it.totalMoney() }.sum()
+            placeBet(player, player.placeBet(totalBetToCall - sum))
         }
     }
 
@@ -182,10 +185,13 @@ data class GameMatch(var players: List<Player>) {
     }
 
     fun raise(player: Player, amount: Int): Unit {
-        if (game_stage == GAME_STAGE.CALL_RAISE_FOLD ||
-                game_stage == GAME_STAGE.WAIT_FOR_BETS) {
-            val bet = player.placeBet(amount + lastBet!!.totalMoney())
-            lastBet = bet
+        if ((game_stage == GAME_STAGE.CALL_RAISE_FOLD ||
+                        game_stage == GAME_STAGE.WAIT_FOR_BETS) && currentRaises < MAX_RAISE_NUM) {
+            currentRaises += 1
+            minCurrentBetAmount = amount
+            val sum = bets.getOrElse(player) { emptyList<Bet>() }.map { it.totalMoney() }.sum()
+            val bet = player.placeBet((amount + totalBetToCall) - sum)
+            totalBetToCall = bet.totalMoney() + sum
             placeBet(player, bet)
             calculateNextPlayerTurn()
         }
@@ -193,8 +199,8 @@ data class GameMatch(var players: List<Player>) {
 
     fun high(): Unit {
         if (game_stage == GAME_STAGE.START_BETS) {
-            val bet = high.placeBet(minBetAmount)
-            lastBet = bet
+            val bet = high.placeBet(minStartBetAmount)
+            totalBetToCall = bet.totalMoney()
             placeBet(high, bet)
             game_stage = GAME_STAGE.HIGHS
             turnPlayer = 1
@@ -203,7 +209,7 @@ data class GameMatch(var players: List<Player>) {
 
     fun low(): Unit {
         if (game_stage == GAME_STAGE.HIGHS) {
-            val bet = low.placeBet(minBetAmount / 2)
+            val bet = low.placeBet(minStartBetAmount / 2)
             placeBet(low, bet)
             game_stage = GAME_STAGE.LOWS
             turnPlayer = 2
@@ -222,12 +228,11 @@ data class GameMatch(var players: List<Player>) {
         val allBets = mGame.players.filter { !it.folded }
                 .map {
                     sumBets(bets[it])
-                }
-                .reduceRight { i: Int, acc: Int ->
-                    i - acc
+                }.reduceRight { i: Int, acc: Int ->
+                    if (acc == i) i else 0
                 }
 
-        if (allBets == 0) {
+        if (allBets != 0) {
             game_stage = GAME_STAGE.DEALING
         }
     }
@@ -237,13 +242,15 @@ data class GameMatch(var players: List<Player>) {
     } ?: 0
 
 
-    fun deal(): PokerCard {
-        game_stage = GAME_STAGE.DEALING
-        val dropCard = mGame.dropCard()
-        droppedCard += dropCard
-        mGame.drawCard()
-        game_stage = GAME_STAGE.WAIT_FOR_BETS
-        return dropCard
+    fun deal(): PokerCard? {
+        if (game_stage == GAME_STAGE.DEALING && mGame.state.tableCards.size < MAX_CARDS_TABLE) {
+            val dropCard = mGame.dropCard()
+            droppedCard += dropCard
+            mGame.drawCard()
+            game_stage = GAME_STAGE.WAIT_FOR_BETS
+            return dropCard
+        }
+        return null
     }
 }
 

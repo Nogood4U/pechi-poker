@@ -46,15 +46,24 @@ class PechiPokerApplicationTests {
         printCards(gameMatch.mGame.state.tableCards)
         gameMatch.wairForBets()
         var player = gameMatch.players[gameMatch.turnPlayer]
-        gameMatch.raise(player, gameMatch.minBetAmount + 10)
+        println("Player ${player.name} Raising...")
+        gameMatch.raise(player, gameMatch.minStartBetAmount + 10)
         player = gameMatch.players[gameMatch.turnPlayer]
+        println("Player ${player.name} Calling...")
         gameMatch.call(player)
         player = gameMatch.players[gameMatch.turnPlayer]
+        println("Player ${player.name} Raising...")
+        gameMatch.raise(player, gameMatch.minCurrentBetAmount)
+        player = gameMatch.players[gameMatch.turnPlayer]
+        println("Player ${player.name} Calling...")
+        gameMatch.call(player)
+        player = gameMatch.players[gameMatch.turnPlayer]
+        println("Player ${player.name} Calling...")
         gameMatch.call(player)
         println("-----------------------")
         println(gameMatch.game_stage)
         println("-----------------------")
-        gameMatch.deal()
+        // gameMatch.deal()
         println("------------------")
         printCards(gameMatch.mGame.state.tableCards)
         println("-----------------------")
@@ -67,6 +76,9 @@ class PechiPokerApplicationTests {
         println(gameMatch.game_stage)
         println("-----------------------")
         printBets(gameMatch.bets)
+        println("-----------------------")
+        println(gameMatch.game_stage)
+        println("-----------------------")
     }
 
     fun printBets(bets: MutableMap<Player, MutableList<Bet>>): Unit {
@@ -74,7 +86,7 @@ class PechiPokerApplicationTests {
         bets.forEach {
             print(it.key.name.padEnd(16))
             it.value.forEach {
-                print("${it}")
+                print("$it")
             }
             println()
         }
