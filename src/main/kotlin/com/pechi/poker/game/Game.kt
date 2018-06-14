@@ -258,16 +258,16 @@ data class GameMatch(var players: List<Player>) {
 data class PokerHand(val type: PokerHandType, val priority: Int)
 
 interface ShowdownHand {
-    fun analyze(player: Player): PokerHand?
+    fun analyze(player: Player,mGame: Game): PokerHand?
     fun getType(): PokerHandType
-    fun untie(players: List<Player>): Player?
+    fun untie(players: List<Player>, mGame: Game): Player?
 }
 
-class Showdown(val showdownHands: List<ShowdownHand>, val players: List<Player>) {
+class Showdown(val showdownHands: List<ShowdownHand>, val players: List<Player> , val mGame: Game) {
 
     fun ItsGoTime(): Player? {
         val playerHandPair = players.map { player ->
-            val hands = showdownHands.mapNotNull { it.analyze(player) }
+            val hands = showdownHands.mapNotNull { it.analyze(player,mGame) }
                     .sortedByDescending { it.priority }
             player to hands
         }.sortedByDescending {
@@ -282,7 +282,7 @@ class Showdown(val showdownHands: List<ShowdownHand>, val players: List<Player>)
             bestHandList.first().first
         } else {
             val untie = getShowdownHandForPokerHand(bestHandList.first().second.first())
-                    ?.untie(bestHandList.map { it.first })
+                    ?.untie(bestHandList.map { it.first },mGame)
             untie
         }
     }
