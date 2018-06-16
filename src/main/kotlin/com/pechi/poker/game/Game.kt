@@ -3,6 +3,8 @@ package com.pechi.poker.game
 import com.pechi.poker.deck.PokerCard
 import com.pechi.poker.deck.PokerDeck
 import com.pechi.poker.deck.PokerHandType
+import java.util.*
+import kotlin.Pair
 
 data class Game(val deck: PokerDeck, val players: List<Player>, var state: State, private var moves: List<Move>) {
 
@@ -258,31 +260,38 @@ data class GameMatch(var players: List<Player>) {
 data class PokerHand(val type: PokerHandType, val priority: Int)
 
 interface ShowdownHand {
-    fun analyze(player: Player,mGame: Game): PokerHand?
+    fun analyze(player: Player, mGame: Game): PokerHand?
     fun getType(): PokerHandType
+    fun getPriority(): Int
     fun untie(players: List<Player>, mGame: Game): Player?
 }
 
-class Showdown(val showdownHands: List<ShowdownHand>, val players: List<Player> , val mGame: Game) {
+class Showdown(val showdownHands: List<ShowdownHand>, val players: List<Player>, val mGame: Game) {
+
+    init {
+        showdownHands.sortedByDescending { it.getPriority() }
+    }
 
     fun ItsGoTime(): Player? {
         val playerHandPair = players.map { player ->
-            val hands = showdownHands.mapNotNull { it.analyze(player,mGame) }
-                    .sortedByDescending { it.priority }
+            val hands = showdownHands.mapNotNull {
+                it.analyze(player, mGame)
+            }.sortedByDescending { it.priority }
             player to hands
         }.sortedByDescending {
             it.second.first().priority
         }
-        val bestHandList: List<Pair<Player, List<PokerHand>>> = playerHandPair
+        val bestHandMap = playerHandPair
                 .groupBy {
                     it.second.first().priority
-                }.toSortedMap(compareByDescending { it })[0].orEmpty()
+                }.toSortedMap(compareByDescending { it })
+        val bestHandList = bestHandMap[bestHandMap.firstKey()].orEmpty()
 
         return if (bestHandList.size == 1) {
             bestHandList.first().first
         } else {
             val untie = getShowdownHandForPokerHand(bestHandList.first().second.first())
-                    ?.untie(bestHandList.map { it.first },mGame)
+                    ?.untie(bestHandList.map { it.first }, mGame)
             untie
         }
     }

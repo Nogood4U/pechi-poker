@@ -2,10 +2,8 @@ package com.pechi.poker
 
 import com.pechi.poker.deck.PokerCard
 import com.pechi.poker.deck.PokerDeck
-import com.pechi.poker.deck.PokerHand
-import com.pechi.poker.game.Bet
-import com.pechi.poker.game.GameMatch
-import com.pechi.poker.game.Player
+import com.pechi.poker.deck.PokerHandType
+import com.pechi.poker.game.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.springframework.boot.test.context.SpringBootTest
@@ -22,9 +20,9 @@ class PechiPokerApplicationTests {
     @Test
     fun testGame(): Unit {
         val list = listOf<Player>(
-                Player("P1", emptyList(), PokerHand.CARTA_ALTA),
-                Player("P2", emptyList(), PokerHand.CARTA_ALTA),
-                Player("P3", emptyList(), PokerHand.CARTA_ALTA)
+                Player("P1", emptyList(), PokerHand(PokerHandType.CARTA_ALTA,0)),
+                Player("P2", emptyList(), PokerHand(PokerHandType.CARTA_ALTA,0)),
+                Player("P3", emptyList(), PokerHand(PokerHandType.CARTA_ALTA,0))
 
         )
         val gameMatch = GameMatch(list)
@@ -78,6 +76,11 @@ class PechiPokerApplicationTests {
         printBets(gameMatch.bets)
         println("-----------------------")
         println(gameMatch.game_stage)
+        println("-----------------------")
+        val showdown = Showdown(listOf(HighCard(),OnePair()), gameMatch.players, gameMatch.mGame)
+        val player1: Player? = showdown.ItsGoTime()
+        println("-----------------------")
+        println("Winner was ${player1?.name}")
         println("-----------------------")
     }
 
