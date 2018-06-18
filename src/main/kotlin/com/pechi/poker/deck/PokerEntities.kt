@@ -50,4 +50,8 @@ class PokerDeck {
 
 }
 
-data class PokerCard(val suits: PokerSuits, val number: PokerNumber)
+data class PokerCard(val suits: PokerSuits, val number: PokerNumber){
+    override fun toString(): String {
+        return "[$number de $suits]"
+    }
+}

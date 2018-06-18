@@ -135,6 +135,10 @@ data class GameMatch(var players: List<Player>) {
     var totalBetToCall: Int = minStartBetAmount
     var turnPlayer: Int = 0
 
+    fun join(player: Player) {
+        players += player
+    }
+
     fun start() {
         mGame.init()
         wairForStartBets()

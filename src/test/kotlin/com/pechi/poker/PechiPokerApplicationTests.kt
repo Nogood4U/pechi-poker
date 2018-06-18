@@ -20,9 +20,9 @@ class PechiPokerApplicationTests {
     @Test
     fun testGame(): Unit {
         val list = listOf<Player>(
-                Player("P1", emptyList(), PokerHand(PokerHandType.CARTA_ALTA,0)),
-                Player("P2", emptyList(), PokerHand(PokerHandType.CARTA_ALTA,0)),
-                Player("P3", emptyList(), PokerHand(PokerHandType.CARTA_ALTA,0))
+                Player("P1", emptyList(), PokerHand(PokerHandType.CARTA_ALTA, 0)),
+                Player("P2", emptyList(), PokerHand(PokerHandType.CARTA_ALTA, 0)),
+                Player("P3", emptyList(), PokerHand(PokerHandType.CARTA_ALTA, 0))
 
         )
         val gameMatch = GameMatch(list)
@@ -77,11 +77,14 @@ class PechiPokerApplicationTests {
         println("-----------------------")
         println(gameMatch.game_stage)
         println("-----------------------")
-        val showdown = Showdown(listOf(HighCard(),OnePair()), gameMatch.players, gameMatch.mGame)
+        val showdown = Showdown(listOf(HighCard(), OnePair(), TwoPair(), ThreeOfaKind()), gameMatch.players, gameMatch.mGame)
         val player1: Player? = showdown.ItsGoTime()
         println("-----------------------")
-        println("Winner was ${player1?.name}")
+        println("Winner was ${player1?.name} with ${player1?.hand}")
         println("-----------------------")
+        gameMatch.players.forEach {
+            println("Player ${it.name} hand ${listOf(it.cards, gameMatch.mGame.state.tableCards).flatten()}")
+        }
     }
 
     fun printBets(bets: MutableMap<Player, MutableList<Bet>>): Unit {
