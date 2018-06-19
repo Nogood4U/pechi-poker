@@ -2,11 +2,15 @@ package com.pechi.poker.services
 
 import com.pechi.poker.game.GameMatch
 import com.pechi.poker.game.Player
+import org.springframework.beans.factory.config.ConfigurableBeanFactory
+import org.springframework.context.annotation.Scope
+import org.springframework.stereotype.Service
 import reactor.core.publisher.ConnectableFlux
 import reactor.core.publisher.Flux
 import reactor.core.publisher.FluxSink
 
-
+@Scope(ConfigurableBeanFactory.SCOPE_SINGLETON)
+@Service
 class GameService {
 
     var matches: MutableMap<String, GameMatch> = mutableMapOf()
@@ -36,8 +40,21 @@ class GameService {
         sink?.next(Join(code, player))
     }
 
+    fun getGame(code: String): Game {
+        return Game(code, matches[code]?.players)
+    }
+
     data class Join(val code: String, val player: Player)
     data class Create(val code: String, val player: Player)
+
+    data class Game(val name: String, val players: List<Player>?)
 }
 
+@Service
+class PlayerService {
 
+    fun get(player: String): Player {
+        TODO()
+    }
+
+}
