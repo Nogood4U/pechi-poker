@@ -4,7 +4,6 @@ import com.pechi.poker.deck.PokerCard
 import com.pechi.poker.deck.PokerDeck
 import com.pechi.poker.deck.PokerHandType
 import java.util.*
-import kotlin.Pair
 
 data class Game(val deck: PokerDeck, val players: List<Player>, var state: State, private var moves: List<Move>) {
 
@@ -52,7 +51,7 @@ data class Bet(val coin100: Int = 0, val coin50: Int = 0, val coin25: Int = 0, v
 data class Move(val card: PokerCard, val type: MoveType = MoveType.JUGAR)
 
 
-data class Player(val name: String, var cards: List<PokerCard>, var hand: PokerHand, var folded: Boolean = false, val coin100: Int = 10, val coin50: Int = 10, val coin25: Int = 10, val coin10: Int = 10) {
+data class Player(val name: String, var cards: List<PokerCard> = emptyList(), var hand: PokerHand = PokerHand(PokerHandType.CARTA_ALTA, 0), var folded: Boolean = false, val coin100: Int = 10, val coin50: Int = 10, val coin25: Int = 10, val coin10: Int = 10) {
 
     fun totalMoney(): Int {
         return coin100 + coin50 + coin25 + coin10
@@ -128,18 +127,21 @@ data class GameMatch(var players: List<Player>) {
     val mDeck = PokerDeck()
     val mGame: Game = Game(mDeck, players, State.newState(mDeck), emptyList())
     var droppedCard: List<PokerCard> = emptyList()
-    var high: Player = players[0]
-    var low: Player = players[1]
+    var high: Player = Player("")
+    var low: Player = Player("")
     var game_stage = GAME_STAGE.WAIT_FOR_BETS
     var bets: MutableMap<Player, MutableList<Bet>> = HashMap()
     var totalBetToCall: Int = minStartBetAmount
     var turnPlayer: Int = 0
+
 
     fun join(player: Player) {
         players += player
     }
 
     fun start() {
+         high = players[0]
+        low= players[1]
         mGame.init()
         wairForStartBets()
     }
