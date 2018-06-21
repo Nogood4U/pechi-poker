@@ -115,7 +115,7 @@ data class State(val deck: PokerDeck, val tableCards: List<PokerCard>) {
 
 data class GameMatch(var players: List<Player>) {
     enum class GAME_STAGE {
-        START_BETS, WAIT_FOR_BETS, DEALING, BLINDS, CALL_RAISE_FOLD, HIGHS, LOWS
+        SHOWDOWN, START_BETS, WAIT_FOR_BETS, DEALING, BLINDS, CALL_RAISE_FOLD, HIGHS, LOWS
     }
 
     val MAX_RAISE_NUM = players.size
@@ -134,6 +134,12 @@ data class GameMatch(var players: List<Player>) {
     var totalBetToCall: Int = minStartBetAmount
     var turnPlayer: Int = 0
 
+    fun dropPlayer(name: String): Boolean {
+        val dropWhile = players.dropWhile {
+            it.name === name
+        }
+        return dropWhile.find { it.name == name } == null
+    }
 
     fun nextTurn(): Player {
         return this.players[this.turnPlayer]

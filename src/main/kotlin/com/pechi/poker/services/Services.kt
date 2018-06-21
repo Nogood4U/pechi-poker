@@ -1,8 +1,7 @@
 package com.pechi.poker.services
 
 import com.pechi.poker.deck.PokerCard
-import com.pechi.poker.game.GameMatch
-import com.pechi.poker.game.Player
+import com.pechi.poker.game.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.config.ConfigurableBeanFactory
 import org.springframework.context.annotation.Scope
@@ -91,7 +90,7 @@ class GameService(@Autowired val playerService: PlayerService) {
         return matches[code]?.let {
             playerService.get(player)?.let {
                 Flux.create<Any> { mySink ->
-                    matchFlux[code]?.subscribe {
+                    matchFlux[code]?.filter { it is Update }?.subscribe {
                         mySink.next(it)
                     }
                 }.doOnCancel {
@@ -103,6 +102,14 @@ class GameService(@Autowired val playerService: PlayerService) {
                 }.mergeWith(Flux.interval(Duration.of(10, ChronoUnit.SECONDS))).log()
             }
         } ?: Flux.empty()
+    }
+
+    fun leaveGame(code: String, player: String): Boolean {
+        return matches[code]?.let { match ->
+            playerService.get(player)?.let {
+                match.dropPlayer(it.name)
+            }
+        } ?: false
     }
 
     fun call(code: String, player: String): Boolean {
@@ -117,8 +124,10 @@ class GameService(@Autowired val playerService: PlayerService) {
     fun raise(code: String, player: String, amount: Int): Boolean {
         return matches[code]?.let {
             playerService.get(player)?.let {
-                sink?.next(Raise(code, it, amount))
-                true
+                if (amount > 0) {
+                    sink?.next(Raise(code, it, amount))
+                    true
+                } else false
             }
         } ?: false
     }
@@ -144,9 +153,9 @@ class GameService(@Autowired val playerService: PlayerService) {
     data class Join(val code: String, val player: PlayerService.Player)
     data class Create(val code: String, val player: PlayerService.Player)
     data class Game(val name: String, val players: List<PlayerService.Player>?)
-
-    data class Update(val playerTurn: String?, val game_stage: GameMatch.GAME_STAGE?, val tableCards: List<PokerCard>?) {
-        constructor() : this(null, null, null)
+    data class Update(val playerTurn: String?, val game_stage: GameMatch.GAME_STAGE?,
+                      val tableCards: List<PokerCard>?, val droppedCards: List<PokerCard>?, val winner: Player? = null) {
+        constructor() : this(null, null, null, null, null)
     }
 
 
@@ -168,6 +177,11 @@ class GameService(@Autowired val playerService: PlayerService) {
     }
 
     data class Pass(val code: String, val player: PlayerService.Player) : Play(code) {
+        override fun getPlayerName() = player.name
+
+    }
+
+    data class Showdown(val code: String, val player: PlayerService.Player) : Play(code) {
         override fun getPlayerName() = player.name
 
     }
@@ -201,20 +215,30 @@ object EventProcessor {
         return if (nextTurnPlayer.name == play.getPlayerName())
             when (play) {
                 is GameService.Fold -> {
-                    game.fold(nextTurnPlayer)
+                    game.apply {
+                        fold(nextTurnPlayer)
+                        deal()
+                    }
                     buildUpdateFromGameMatch(game)
                 }
                 is GameService.Pass -> {
                     game.pass()
+                    game.deal()
                     buildUpdateFromGameMatch(game)
                 }
                 is GameService.Call -> {
                     game.fold(nextTurnPlayer)
+                    game.deal()
                     buildUpdateFromGameMatch(game)
                 }
                 is GameService.Raise -> {
                     game.fold(nextTurnPlayer)
+                    game.deal()
                     buildUpdateFromGameMatch(game)
+                }
+                is GameService.Showdown -> {
+                    val showdown = Showdown(listOf(HighCard(), OnePair(), TwoPair(), ThreeOfaKind()), game.players, game.mGame)
+                    buildUpdateForRoundWinner(game, showdown.ItsGoTime())
                 }
                 else -> GameService.Update()
             }
@@ -225,8 +249,17 @@ object EventProcessor {
 
     fun buildUpdateFromGameMatch(gameMatch: GameMatch): GameService.Update {
         val nextTurnPlayer = gameMatch.nextTurn()
-        val game_stage = gameMatch.game_stage
+        val stage = gameMatch.game_stage
         val tableCards = gameMatch.mGame.state.tableCards
-        return GameService.Update(nextTurnPlayer.name, game_stage, tableCards)
+        val droppedCard = gameMatch.droppedCard
+        return GameService.Update(nextTurnPlayer.name, stage, tableCards, droppedCard)
+    }
+
+    fun buildUpdateForRoundWinner(gameMatch: GameMatch, winner: Player?): GameService.Update {
+        val nextTurnPlayer = gameMatch.nextTurn()
+        val stage = gameMatch.game_stage
+        val tableCards = gameMatch.mGame.state.tableCards
+        val droppedCard = gameMatch.droppedCard
+        return GameService.Update(nextTurnPlayer.name, stage, tableCards, droppedCard, winner)
     }
 }

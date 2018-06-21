@@ -47,6 +47,25 @@ class GameController(@Autowired val gameService: GameService, @Autowired val pla
         return if (let != null) ResponseEntity.ok().build() else ResponseEntity.badRequest().build()
     }
 
+    @PostMapping("/drop/{code}")
+    fun leaveGame(@PathVariable("code") code: String, @RequestParam("player") player: String): ResponseEntity<String> {
+
+        return if (gameService.leaveGame(code, player)) ResponseEntity.ok().build() else ResponseEntity.badRequest().build()
+    }
+
+    @PostMapping("/play/{code}/{player}/{move}")
+    fun doPlay(@PathVariable("code") code: String, @RequestParam("player") player: String,
+               @RequestParam("play") play: String, @RequestParam("amount") amount: Int): ResponseEntity<String> {
+        val res = when (play) {
+            "fold" -> gameService.fold(code, player)
+            "raise" -> gameService.raise(code, player, amount)
+            "call" -> gameService.call(code, player)
+            "pass" -> gameService.pass(code, player)
+            else -> false
+        }
+        return if (res) ResponseEntity.ok().build() else ResponseEntity.badRequest().build()
+    }
+
     @GetMapping("/socket/{code}/{player}/stream", produces = [(MediaType.TEXT_EVENT_STREAM_VALUE)])
     fun gameEvents(@PathVariable("code") code: String, @PathVariable("player") player: String): Flux<Any> {
         return gameService.connect(code, player)
