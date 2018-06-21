@@ -7,7 +7,7 @@ import java.util.*
 
 data class Game(val deck: PokerDeck, val players: List<Player>, var state: State, private var moves: List<Move>) {
 
-    fun drawCard(): Unit {
+    fun drawCard() {
         val card = deck.mdeck.pop()
         val move = Move(card)
         addMove(move)
@@ -20,15 +20,15 @@ data class Game(val deck: PokerDeck, val players: List<Player>, var state: State
         return card
     }
 
-    fun addMove(move: Move): Unit {
+    fun addMove(move: Move) {
         this.moves += move
     }
 
-    fun applyMove(move: Move): Unit {
+    fun applyMove(move: Move) {
         state = this.state.apply(move)
     }
 
-    fun init(): Unit {
+    fun init() {
         deck.init()
         (1..2).forEach {
             players.forEach {
@@ -135,13 +135,17 @@ data class GameMatch(var players: List<Player>) {
     var turnPlayer: Int = 0
 
 
+    fun nextTurn(): Player {
+        return this.players[this.turnPlayer]
+    }
+
     fun join(player: Player) {
         players += player
     }
 
     fun start() {
-         high = players[0]
-        low= players[1]
+        high = players[0]
+        low = players[1]
         mGame.init()
         wairForStartBets()
     }
@@ -156,7 +160,7 @@ data class GameMatch(var players: List<Player>) {
         return dropCard
     }
 
-    private fun calculateNextPlayerTurn(): Unit {
+    private fun calculateNextPlayerTurn() {
         if (turnPlayer + 1 >= players.size)
             turnPlayer = 0
         else
@@ -166,15 +170,15 @@ data class GameMatch(var players: List<Player>) {
             calculateNextPlayerTurn()
     }
 
-    fun wairForBets(): Unit {
+    fun wairForBets() {
         game_stage = GAME_STAGE.WAIT_FOR_BETS
     }
 
-    fun wairForStartBets(): Unit {
+    fun wairForStartBets() {
         game_stage = GAME_STAGE.START_BETS
     }
 
-    fun call(player: Player): Unit {
+    fun call(player: Player) {
         if (game_stage == GAME_STAGE.CALL_RAISE_FOLD ||
                 game_stage == GAME_STAGE.WAIT_FOR_BETS) {
             game_stage = GAME_STAGE.CALL_RAISE_FOLD
@@ -184,7 +188,14 @@ data class GameMatch(var players: List<Player>) {
         }
     }
 
-    fun fold(player: Player): Unit {
+    fun pass() {
+        if (game_stage == GAME_STAGE.CALL_RAISE_FOLD ||
+                game_stage == GAME_STAGE.WAIT_FOR_BETS) {
+            calculateNextPlayerTurn()
+        }
+    }
+
+    fun fold(player: Player) {
         if (game_stage == GAME_STAGE.CALL_RAISE_FOLD ||
                 game_stage == GAME_STAGE.WAIT_FOR_BETS) {
             player.folded = true
@@ -192,7 +203,7 @@ data class GameMatch(var players: List<Player>) {
         }
     }
 
-    fun raise(player: Player, amount: Int): Unit {
+    fun raise(player: Player, amount: Int) {
         if ((game_stage == GAME_STAGE.CALL_RAISE_FOLD ||
                         game_stage == GAME_STAGE.WAIT_FOR_BETS) && currentRaises < MAX_RAISE_NUM) {
             currentRaises += 1
@@ -205,7 +216,7 @@ data class GameMatch(var players: List<Player>) {
         }
     }
 
-    fun high(): Unit {
+    fun high() {
         if (game_stage == GAME_STAGE.START_BETS) {
             val bet = high.placeBet(minStartBetAmount)
             totalBetToCall = bet.totalMoney()
@@ -215,7 +226,7 @@ data class GameMatch(var players: List<Player>) {
         }
     }
 
-    fun low(): Unit {
+    fun low() {
         if (game_stage == GAME_STAGE.HIGHS) {
             val bet = low.placeBet(minStartBetAmount / 2)
             placeBet(low, bet)

@@ -7,11 +7,12 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.*
+import reactor.core.publisher.Flux
 
 
 @Controller
 @RequestMapping("/game", produces = [(MediaType.APPLICATION_JSON_VALUE)])
-class IndexController(@Autowired val gameService: GameService, @Autowired val playerService: PlayerService) {
+class GameController(@Autowired val gameService: GameService, @Autowired val playerService: PlayerService) {
 
     @GetMapping("/{code}")
     fun index(@PathVariable("code") code: String): ResponseEntity<GameService.Game>? {
@@ -36,6 +37,21 @@ class IndexController(@Autowired val gameService: GameService, @Autowired val pl
         }
         return if (let != null) ResponseEntity.ok().build() else ResponseEntity.badRequest().build()
     }
+
+    @PostMapping("/start/{code}")
+    fun start(@PathVariable("code") code: String, @RequestParam("player") player: String): ResponseEntity<String> {
+        val let: String? = playerService.get(player)?.let {
+            gameService.startMatch(code, it)
+            code
+        }
+        return if (let != null) ResponseEntity.ok().build() else ResponseEntity.badRequest().build()
+    }
+
+    @GetMapping("/socket/{code}/{player}/stream", produces = [(MediaType.TEXT_EVENT_STREAM_VALUE)])
+    fun gameEvents(@PathVariable("code") code: String, @PathVariable("player") player: String): Flux<Any> {
+        return gameService.connect(code, player)
+    }
+
 }
 
 
@@ -47,5 +63,14 @@ class PlayerController(@Autowired val gameService: GameService, @Autowired val p
     fun create(@RequestParam("name") name: String): ResponseEntity<String> {
         playerService.register(name)
         return ResponseEntity.ok().build()
+    }
+}
+
+@Controller
+@RequestMapping("/")
+class IndexController {
+    @GetMapping
+    fun index(): String {
+        return "index"
     }
 }

@@ -1,38 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <script src="//cdn.jsdelivr.net/npm/phaser@3.0.0/dist/phaser.min.js"></script>
+    <title>Pechi-Poker</title>
 </head>
 <body>
 
 <script>
-    var config = {
-        type: Phaser.AUTO,
-        width: 1024,
-        height: 600,
-        physics: {
-            default: 'arcade',
-            arcade: {
-                gravity: { y: 200 }
-            }
-        },
-        scene: {
-            preload: preload,
-            create: create
-        }
+    var evtSource = new EventSource("http://localhost:8080/game/socket/101/Sergio/stream");
+    evtSource.onmessage = function (event) {
+        console.log(event)
+    }
+    evtSource.onerror = function () {
+        evtSource.close();
     };
-
-    var game = new Phaser.Game(config);
-
-    function preload ()
-    {
-        game.load.image("background", "../img/pokertable-bg.jpg");
-    }
-
-    function create ()
-    {
-        game.add.image(game.world.centerX, game.world.centerY, 'background').anchor.set(0.5);
-    }
 </script>
 
 </body>
