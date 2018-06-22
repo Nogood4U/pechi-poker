@@ -5,7 +5,7 @@ import com.pechi.poker.deck.PokerDeck
 import com.pechi.poker.deck.PokerHandType
 import java.util.*
 
-data class Game(val deck: PokerDeck, val players: List<Player>, var state: State, private var moves: List<Move>) {
+data class Game(val deck: PokerDeck, var players: List<Player>, var state: State, private var moves: List<Move>) {
 
     fun drawCard() {
         val card = deck.mdeck.pop()
@@ -51,7 +51,7 @@ data class Bet(val coin100: Int = 0, val coin50: Int = 0, val coin25: Int = 0, v
 data class Move(val card: PokerCard, val type: MoveType = MoveType.JUGAR)
 
 
-data class Player(val name: String, var cards: List<PokerCard> = emptyList(), var hand: PokerHand = PokerHand(PokerHandType.CARTA_ALTA, 0), var folded: Boolean = false, val coin100: Int = 10, val coin50: Int = 10, val coin25: Int = 10, val coin10: Int = 10) {
+data class Player(val name: String, var cards: List<PokerCard> = emptyList(), var hand: PokerHand = PokerHand(PokerHandType.CARTA_ALTA, 0), var folded: Boolean = false, var coin100: Int = 10, var coin50: Int = 10, var coin25: Int = 10, var coin10: Int = 10) {
 
     fun totalMoney(): Int {
         return coin100 + coin50 + coin25 + coin10
@@ -67,15 +67,23 @@ data class Player(val name: String, var cards: List<PokerCard> = emptyList(), va
         val (coins, _, _) = dist(wants.size - 1, amount)
 
         val groupedCoin = coins.groupBy(Chip::name)
-        return Bet(groupedCoin.getOrElse("100") { emptyList() }.size,
+        val bet = Bet(groupedCoin.getOrElse("100") { emptyList() }.size,
                 groupedCoin.getOrElse("50") { emptyList() }.size,
                 groupedCoin.getOrElse("25") { emptyList() }.size,
                 groupedCoin.getOrElse("10") { emptyList() }.size)
+
+        this.coin10 -= bet.coin10
+        this.coin25 -= bet.coin25
+        this.coin50 -= bet.coin50
+        this.coin100 -= bet.coin100
+
+        return bet
     }
 
     data class Chip(val name: String, val weight: Int, val value: Int)
 
-    var wants = listOf(
+    @Transient
+    private var wants = listOf(
             Chip("100", 100, 100),
             Chip("50", 50, 50),
             Chip("25", 25, 25),
@@ -147,6 +155,7 @@ data class GameMatch(var players: List<Player>) {
 
     fun join(player: Player) {
         players += player
+        mGame.players = players
     }
 
     fun start() {
@@ -245,7 +254,7 @@ data class GameMatch(var players: List<Player>) {
         if (bets.containsKey(player)) {
             bets[player]?.add(bet)
         } else {
-            bets.put(player, arrayListOf(bet))
+            bets[player] = arrayListOf(bet)
         }
         when (game_stage) {
             GAME_STAGE.WAIT_FOR_BETS -> GAME_STAGE.CALL_RAISE_FOLD

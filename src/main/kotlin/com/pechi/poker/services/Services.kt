@@ -53,7 +53,7 @@ class GameService(@Autowired val playerService: PlayerService) {
                                         matchSink[msg.code]?.next(EventProcessor.buildUpdateFromGameMatch(this))
                                     }
                                 }
-                                is Play -> sink?.next(EventProcessor.processPlay(it, matches[it.code()]))
+                                is Play -> matchSink[msg.code]?.next(EventProcessor.processPlay(it, matches[it.code()]))
                                 else -> println(it)
                             }
                         }
@@ -91,6 +91,7 @@ class GameService(@Autowired val playerService: PlayerService) {
             playerService.get(player)?.let {
                 Flux.create<Any> { mySink ->
                     matchFlux[code]?.filter { it is Update }?.subscribe {
+                        (it as Update).player.filter { it.name != player }.forEach { it.cards = emptyList() }
                         mySink.next(it)
                     }
                 }.doOnCancel {
@@ -115,7 +116,7 @@ class GameService(@Autowired val playerService: PlayerService) {
     fun call(code: String, player: String): Boolean {
         return matches[code]?.let {
             playerService.get(player)?.let {
-                sink?.next(Call(code, it))
+                matchSink[code]?.next(Call(code, it))
                 true
             }
         } ?: false
@@ -125,7 +126,7 @@ class GameService(@Autowired val playerService: PlayerService) {
         return matches[code]?.let {
             playerService.get(player)?.let {
                 if (amount > 0) {
-                    sink?.next(Raise(code, it, amount))
+                    matchSink[code]?.next(Raise(code, it, amount))
                     true
                 } else false
             }
@@ -135,7 +136,7 @@ class GameService(@Autowired val playerService: PlayerService) {
     fun fold(code: String, player: String): Boolean {
         return matches[code]?.let {
             playerService.get(player)?.let {
-                sink?.next(Fold(code, it))
+                matchSink[code]?.next(Fold(code, it))
                 true
             }
         } ?: false
@@ -144,7 +145,7 @@ class GameService(@Autowired val playerService: PlayerService) {
     fun pass(code: String, player: String): Boolean {
         return matches[code]?.let {
             playerService.get(player)?.let {
-                sink?.next(Pass(code, it))
+                matchSink[code]?.next(Pass(code, it))
                 true
             }
         } ?: false
@@ -154,8 +155,8 @@ class GameService(@Autowired val playerService: PlayerService) {
     data class Create(val code: String, val player: PlayerService.Player)
     data class Game(val name: String, val players: List<PlayerService.Player>?)
     data class Update(val playerTurn: String?, val game_stage: GameMatch.GAME_STAGE?,
-                      val tableCards: List<PokerCard>?, val droppedCards: List<PokerCard>?, val winner: Player? = null) {
-        constructor() : this(null, null, null, null, null)
+                      val tableCards: List<PokerCard>?, val droppedCards: List<PokerCard>?, val winner: Player? = null, var player: List<Player> = emptyList()) {
+        constructor() : this(null, null, null, null, null, emptyList())
     }
 
 
@@ -227,12 +228,12 @@ object EventProcessor {
                     buildUpdateFromGameMatch(game)
                 }
                 is GameService.Call -> {
-                    game.fold(nextTurnPlayer)
+                    game.call(nextTurnPlayer)
                     game.deal()
                     buildUpdateFromGameMatch(game)
                 }
                 is GameService.Raise -> {
-                    game.fold(nextTurnPlayer)
+                    game.raise(nextTurnPlayer, play.amount)
                     game.deal()
                     buildUpdateFromGameMatch(game)
                 }
@@ -252,7 +253,7 @@ object EventProcessor {
         val stage = gameMatch.game_stage
         val tableCards = gameMatch.mGame.state.tableCards
         val droppedCard = gameMatch.droppedCard
-        return GameService.Update(nextTurnPlayer.name, stage, tableCards, droppedCard)
+        return GameService.Update(nextTurnPlayer.name, stage, tableCards, droppedCard, null, gameMatch.players)
     }
 
     fun buildUpdateForRoundWinner(gameMatch: GameMatch, winner: Player?): GameService.Update {
@@ -260,6 +261,6 @@ object EventProcessor {
         val stage = gameMatch.game_stage
         val tableCards = gameMatch.mGame.state.tableCards
         val droppedCard = gameMatch.droppedCard
-        return GameService.Update(nextTurnPlayer.name, stage, tableCards, droppedCard, winner)
+        return GameService.Update(nextTurnPlayer.name, stage, tableCards, droppedCard, winner, gameMatch.players)
     }
 }

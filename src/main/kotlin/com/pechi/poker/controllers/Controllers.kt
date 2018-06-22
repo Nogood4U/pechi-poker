@@ -53,9 +53,9 @@ class GameController(@Autowired val gameService: GameService, @Autowired val pla
         return if (gameService.leaveGame(code, player)) ResponseEntity.ok().build() else ResponseEntity.badRequest().build()
     }
 
-    @PostMapping("/play/{code}/{player}/{move}")
-    fun doPlay(@PathVariable("code") code: String, @RequestParam("player") player: String,
-               @RequestParam("play") play: String, @RequestParam("amount") amount: Int): ResponseEntity<String> {
+    @PostMapping("/play/{code}/{player}/{play}")
+    fun doPlay(@PathVariable("code") code: String, @PathVariable("player") player: String,
+               @PathVariable("play") play: String, @RequestParam("amount", required = false) amount: Int): ResponseEntity<String> {
         val res = when (play) {
             "fold" -> gameService.fold(code, player)
             "raise" -> gameService.raise(code, player, amount)
