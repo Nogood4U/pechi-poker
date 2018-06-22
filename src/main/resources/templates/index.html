@@ -2,18 +2,21 @@
 <html>
 <head>
     <title>Pechi-Poker</title>
+    <script src="https://code.jquery.com/jquery-3.3.1.js"
+            integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60="
+            crossorigin=""
+    ></script>
+    <script crossorigin src="https://unpkg.com/react@16/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+    <script crossorigin src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.5/require.js"></script>
+    <script type="text/babel" src="/js/core.js"></script>
+    <script type="text/babel" src="/js/app.js"></script>
+    <script type="text/babel" src="/js/index.js"></script>
 </head>
 <body>
 
-<script>
-    var evtSource = new EventSource("http://localhost:8080/game/socket/101/Sergio/stream");
-    evtSource.onmessage = function (event) {
-        console.log(event)
-    }
-    evtSource.onerror = function () {
-        evtSource.close();
-    };
-</script>
+<div id="root"></div>
 
 </body>
 </html>

@@ -48,8 +48,7 @@ class GameService(@Autowired val playerService: PlayerService) {
                                         start()
                                         high()
                                         low()
-                                        blinds()
-                                        wairForBets()
+                                        wairForStartBets()
                                         matchSink[msg.code]?.next(EventProcessor.buildUpdateFromGameMatch(this))
                                     }
                                 }
@@ -84,6 +83,10 @@ class GameService(@Autowired val playerService: PlayerService) {
             Game(code, it.players.map { PlayerService.Player(it.name) })
         }
 
+    }
+
+    fun getAllGames(): List<Game> {
+        return matches.values.map { Game(it.name, it.players.map { PlayerService.Player(it.name) }) }
     }
 
     fun connect(code: String, player: String): Flux<Any> {
@@ -164,7 +167,6 @@ class GameService(@Autowired val playerService: PlayerService) {
 
     data class Fold(val code: String, val player: PlayerService.Player) : Play(code) {
         override fun getPlayerName() = player.name
-
     }
 
     data class Raise(val code: String, val player: PlayerService.Player, val amount: Int) : Play(code) {

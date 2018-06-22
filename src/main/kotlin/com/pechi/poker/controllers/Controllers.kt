@@ -14,6 +14,12 @@ import reactor.core.publisher.Flux
 @RequestMapping("/game", produces = [(MediaType.APPLICATION_JSON_VALUE)])
 class GameController(@Autowired val gameService: GameService, @Autowired val playerService: PlayerService) {
 
+    @GetMapping("/all")
+    fun allGames(): ResponseEntity<List<GameService.Game>>? {
+        val game = gameService.getAllGames()
+        return ResponseEntity.ok(game)
+    }
+
     @GetMapping("/{code}")
     fun index(@PathVariable("code") code: String): ResponseEntity<GameService.Game>? {
         val game = gameService.getGame(code)

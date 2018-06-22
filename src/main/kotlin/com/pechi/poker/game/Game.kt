@@ -121,7 +121,7 @@ data class State(val deck: PokerDeck, val tableCards: List<PokerCard>) {
 }
 
 
-data class GameMatch(var players: List<Player>) {
+data class GameMatch(var players: List<Player>, val name: String = "") {
     enum class GAME_STAGE {
         SHOWDOWN, START_BETS, WAIT_FOR_BETS, DEALING, BLINDS, CALL_RAISE_FOLD, HIGHS, LOWS
     }
@@ -191,11 +191,12 @@ data class GameMatch(var players: List<Player>) {
 
     fun wairForStartBets() {
         game_stage = GAME_STAGE.START_BETS
+        turnPlayer = 1
     }
 
     fun call(player: Player) {
         if (game_stage == GAME_STAGE.CALL_RAISE_FOLD ||
-                game_stage == GAME_STAGE.WAIT_FOR_BETS) {
+                game_stage == GAME_STAGE.WAIT_FOR_BETS || game_stage == GAME_STAGE.START_BETS) {
             game_stage = GAME_STAGE.CALL_RAISE_FOLD
             calculateNextPlayerTurn()
             val sum = bets.getOrElse(player) { emptyList<Bet>() }.map { it.totalMoney() }.sum()
@@ -255,9 +256,6 @@ data class GameMatch(var players: List<Player>) {
             bets[player]?.add(bet)
         } else {
             bets[player] = arrayListOf(bet)
-        }
-        when (game_stage) {
-            GAME_STAGE.WAIT_FOR_BETS -> GAME_STAGE.CALL_RAISE_FOLD
         }
         val allBets = mGame.players.filter { !it.folded }
                 .map {
