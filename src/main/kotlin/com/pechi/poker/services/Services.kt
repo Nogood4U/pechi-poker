@@ -37,7 +37,7 @@ class GameService(@Autowired val playerService: PlayerService) {
                         matchSink[msg.code]?.next("Joined ${msg.player.name}!!")
                     }
                     is Create -> {
-                        matches[msg.code] = GameMatch(listOf(Player(msg.player.name)))
+                        matches[msg.code] = GameMatch(listOf(Player(msg.player.name)), msg.code)
                         matchFlux[msg.code] = Flux.create<Any> {
                             matchSink[msg.code] = it
                         }.publish()

@@ -85,9 +85,14 @@ class GameController(@Autowired val gameService: GameService, @Autowired val pla
 class PlayerController(@Autowired val gameService: GameService, @Autowired val playerService: PlayerService) {
 
     @PostMapping("create")
-    fun create(@RequestParam("name") name: String): ResponseEntity<String> {
+    fun create(@RequestParam("name") name: String): ResponseEntity<PlayerService.Player> {
         playerService.register(name)
-        return ResponseEntity.ok().build()
+        return ResponseEntity.ok(playerService.get(name)!!)
+    }
+
+    @GetMapping("/{player}")
+    fun get(@PathVariable("player") player: String): ResponseEntity<PlayerService.Player> {
+        return playerService.get(player)?.let { ResponseEntity.ok(it) } ?: ResponseEntity.notFound().build()
     }
 }
 
