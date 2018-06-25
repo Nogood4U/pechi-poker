@@ -153,10 +153,19 @@ class JoinGame extends React.Component {
         }
     }
 
+    startGame() {
+        Core.startGame(this.state.game.name, this.state.player)
+            .done(res => {
+                //redirect to game page or inti game
+                console.log("starting..." + this.state.game.name);
+            });
+    }
+
     render() {
         return (
             <div key={this.state.code}>
                 <button key={this.state.code} type="button" onClick={() => this.joinGame()}>Entrar</button>
+                <button type="button" onClick={() => this.startGame()}> Empezar</button>
             </div>
         )
     }
@@ -168,7 +177,7 @@ class GameBoard extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            code: props.game, player: props.player,
+            code: props.game, player: props.player, raise: 0,
             update: {playerTurn: "", tableCards: [], droppedCards: [], player: [], game_stage: ""},
             connected: false
         };
@@ -194,9 +203,38 @@ class GameBoard extends React.Component {
             });
     }
 
+    call() {
+        Core.call(this.state.code, this.state.player)
+    }
+
+    fold() {
+        Core.fold(this.state.code, this.state.player)
+    }
+
+    pass() {
+        Core.pass(this.state.code, this.state.player)
+    }
+
+    raise() {
+        Core.call(this.state.code, this.state.player)
+    }
+
     render() {
         return (
             <div>
+                <div>
+                    <button type="button" onClick={() => this.call()}>Call</button>
+                    &nbsp;
+                    || raise:&nbsp;<input type="text" size={12}
+                                          onChange={event => this.setState({raise: event.target.value})}/>
+                    <button type="button" onClick={() => this.raise()}>Raise</button>
+                    &nbsp;
+                    <button type="button" onClick={() => this.pass()}>Pass</button>
+                    &nbsp;
+                    <button type="button" style={{color: "red"}} onClick={() => this.fold()}>FOLD!!</button>
+                    &nbsp;
+                </div>
+                <hr/>
                 <div>
                     <h3>Proximo turno:</h3>
                     {this.state.update.playerTurn}
@@ -226,9 +264,18 @@ class GameBoard extends React.Component {
                 <div>
                     <h3>Jugadores:</h3>
                     {this.state.update.player.map(player =>
-                        <p>
-                            {player.name}
-                        </p>
+                        <div>
+                            {player.name} - {player.coin10}
+                            <div>
+                                {player.cards.map(card => {
+                                        return (<ul>
+                                            <li>{card.suits}</li>
+                                            <li>{card.number}</li>
+                                        </ul>)
+                                    }
+                                )}
+                            </div>
+                        </div>
                     )}
                 </div>
             </div>

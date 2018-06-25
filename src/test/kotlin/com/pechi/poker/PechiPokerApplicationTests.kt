@@ -87,10 +87,10 @@ class PechiPokerApplicationTests {
         }
     }
 
-    fun printBets(bets: MutableMap<Player, MutableList<Bet>>): Unit {
+    fun printBets(bets: MutableMap<String, MutableList<Bet>>): Unit {
         println("Player          Bets")
         bets.forEach {
-            print(it.key.name.padEnd(16))
+            print(it.key.padEnd(16))
             it.value.forEach {
                 print("$it")
             }

@@ -1,5 +1,6 @@
 package com.pechi.poker.game
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.pechi.poker.deck.PokerCard
 import com.pechi.poker.deck.PokerDeck
 import com.pechi.poker.deck.PokerHandType
@@ -53,6 +54,7 @@ data class Move(val card: PokerCard, val type: MoveType = MoveType.JUGAR)
 
 data class Player(val name: String, var cards: List<PokerCard> = emptyList(), var hand: PokerHand = PokerHand(PokerHandType.CARTA_ALTA, 0), var folded: Boolean = false, var coin100: Int = 10, var coin50: Int = 10, var coin25: Int = 10, var coin10: Int = 10) {
 
+    @JsonProperty("totalMoney")
     fun totalMoney(): Int {
         return coin100 + coin50 + coin25 + coin10
     }
@@ -138,7 +140,7 @@ data class GameMatch(var players: List<Player>, val name: String = "") {
     var high: Player = Player("")
     var low: Player = Player("")
     var game_stage = GAME_STAGE.WAIT_FOR_BETS
-    var bets: MutableMap<Player, MutableList<Bet>> = HashMap()
+    var bets: MutableMap<String, MutableList<Bet>> = HashMap()
     var totalBetToCall: Int = minStartBetAmount
     var turnPlayer: Int = 0
 
@@ -199,7 +201,7 @@ data class GameMatch(var players: List<Player>, val name: String = "") {
                 game_stage == GAME_STAGE.WAIT_FOR_BETS || game_stage == GAME_STAGE.START_BETS) {
             game_stage = GAME_STAGE.CALL_RAISE_FOLD
             calculateNextPlayerTurn()
-            val sum = bets.getOrElse(player) { emptyList<Bet>() }.map { it.totalMoney() }.sum()
+            val sum = bets.getOrElse(player.name) { emptyList<Bet>() }.map { it.totalMoney() }.sum()
             placeBet(player, player.placeBet(totalBetToCall - sum))
         }
     }
@@ -224,7 +226,7 @@ data class GameMatch(var players: List<Player>, val name: String = "") {
                         game_stage == GAME_STAGE.WAIT_FOR_BETS) && currentRaises < MAX_RAISE_NUM) {
             currentRaises += 1
             minCurrentBetAmount = amount
-            val sum = bets.getOrElse(player) { emptyList<Bet>() }.map { it.totalMoney() }.sum()
+            val sum = bets.getOrElse(player.name) { emptyList<Bet>() }.map { it.totalMoney() }.sum()
             val bet = player.placeBet((amount + totalBetToCall) - sum)
             totalBetToCall = bet.totalMoney() + sum
             placeBet(player, bet)
@@ -247,19 +249,19 @@ data class GameMatch(var players: List<Player>, val name: String = "") {
             val bet = low.placeBet(minStartBetAmount / 2)
             placeBet(low, bet)
             game_stage = GAME_STAGE.LOWS
-            turnPlayer = 2
+            //turnPlayer = 2
         }
     }
 
     private fun placeBet(player: Player, bet: Bet): Unit {
-        if (bets.containsKey(player)) {
-            bets[player]?.add(bet)
+        if (bets.containsKey(player.name)) {
+            bets[player.name]?.add(bet)
         } else {
-            bets[player] = arrayListOf(bet)
+            bets[player.name] = arrayListOf(bet)
         }
         val allBets = mGame.players.filter { !it.folded }
                 .map {
-                    sumBets(bets[it])
+                    sumBets(bets[it.name])
                 }.reduceRight { i: Int, acc: Int ->
                     if (acc == i) i else 0
                 }

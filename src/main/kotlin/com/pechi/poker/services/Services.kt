@@ -1,5 +1,7 @@
 package com.pechi.poker.services
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ObjectNode
 import com.pechi.poker.deck.PokerCard
 import com.pechi.poker.game.*
 import org.springframework.beans.factory.annotation.Autowired
@@ -12,6 +14,7 @@ import reactor.core.publisher.FluxSink
 import java.time.Duration
 import java.time.temporal.ChronoUnit
 import javax.annotation.PostConstruct
+
 
 @Scope(ConfigurableBeanFactory.SCOPE_SINGLETON)
 @Service
@@ -48,6 +51,7 @@ class GameService(@Autowired val playerService: PlayerService) {
                                         start()
                                         high()
                                         low()
+                                        blinds()
                                         wairForStartBets()
                                         matchSink[msg.code]?.next(EventProcessor.buildUpdateFromGameMatch(this))
                                     }
@@ -57,6 +61,12 @@ class GameService(@Autowired val playerService: PlayerService) {
                             }
                         }
                         (matchFlux[msg.code] as ConnectableFlux).connect()
+                    }
+                    is Connected -> {
+                        matches[msg.code]?.apply {
+                            matchSink[msg.code]?.next(EventProcessor.buildUpdateFromGameMatch(this))
+                        }
+
                     }
                     else -> println(msg)
                 }
@@ -89,14 +99,20 @@ class GameService(@Autowired val playerService: PlayerService) {
         return matches.values.map { Game(it.name, it.players.map { PlayerService.Player(it.name) }) }
     }
 
+    var mapper = ObjectMapper()
     fun connect(code: String, player: String): Flux<Any> {
         return matches[code]?.let {
             playerService.get(player)?.let {
                 Flux.create<Any> { mySink ->
                     matchFlux[code]?.filter { it is Update }?.subscribe {
-                        (it as Update).player.filter { it.name != player }.forEach { it.cards = emptyList() }
-                        mySink.next(it)
+                        val node = mapper.valueToTree<ObjectNode>(it)
+                        node.get("player").asIterable().filter { it["name"].asText() != player }
+                                .forEach { (it as ObjectNode)["cards"] = mapper.valueToTree<ObjectNode>(emptyList<String>()) }
+
+                        // (it as Update).player.filter { p -> p.name != player }.forEach { it.cards = emptyList() }
+                        mySink.next(node)
                     }
+                    sink?.next(Connected(code, it))
                 }.doOnCancel {
                     println("$player Disconnected!!")
                 }.doOnTerminate {
@@ -104,6 +120,7 @@ class GameService(@Autowired val playerService: PlayerService) {
                 }.doOnError {
                     println("$player Error!!")
                 }.mergeWith(Flux.interval(Duration.of(10, ChronoUnit.SECONDS))).log()
+
             }
         } ?: Flux.empty()
     }
@@ -156,6 +173,7 @@ class GameService(@Autowired val playerService: PlayerService) {
 
     data class Join(val code: String, val player: PlayerService.Player)
     data class Create(val code: String, val player: PlayerService.Player)
+    data class Connected(val code: String, val player: PlayerService.Player)
     data class Game(val name: String, val players: List<PlayerService.Player>?)
     data class Update(val playerTurn: String?, val game_stage: GameMatch.GAME_STAGE?,
                       val tableCards: List<PokerCard>?, val droppedCards: List<PokerCard>?, val winner: Player? = null, var player: List<Player> = emptyList()) {
