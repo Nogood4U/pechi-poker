@@ -48,12 +48,14 @@ class GameService(@Autowired val playerService: PlayerService) {
                             when (it) {
                                 is StartGame -> {
                                     matches[msg.code]?.apply {
-                                        start()
-                                        high()
-                                        low()
-                                        blinds()
-                                        wairForStartBets()
-                                        matchSink[msg.code]?.next(EventProcessor.buildUpdateFromGameMatch(this))
+                                        if (!this.started) {
+                                            start()
+                                            high()
+                                            low()
+                                            blinds()
+                                            wairForStartBets()
+                                            matchSink[msg.code]?.next(EventProcessor.buildUpdateFromGameMatch(this))
+                                        }
                                     }
                                 }
                                 is Play -> matchSink[msg.code]?.next(EventProcessor.processPlay(it, matches[it.code()]))
@@ -258,8 +260,11 @@ object EventProcessor {
                     buildUpdateFromGameMatch(game)
                 }
                 is GameService.Showdown -> {
-                    val showdown = Showdown(listOf(HighCard(), OnePair(), TwoPair(), ThreeOfaKind()), game.players, game.mGame)
-                    buildUpdateForRoundWinner(game, showdown.ItsGoTime())
+                    if (game.game_stage == GameMatch.GAME_STAGE.SHOWDOWN) {
+                        val showdown = Showdown(listOf(HighCard(), OnePair(), TwoPair(), ThreeOfaKind()), game.players, game.mGame)
+                        buildUpdateForRoundWinner(game, showdown.ItsGoTime())
+
+                    } else buildUpdateFromGameMatch(game)
                 }
                 else -> GameService.Update()
             }
@@ -277,6 +282,7 @@ object EventProcessor {
     }
 
     fun buildUpdateForRoundWinner(gameMatch: GameMatch, winner: Player?): GameService.Update {
+        gameMatch.round += 1
         val nextTurnPlayer = gameMatch.nextTurn()
         val stage = gameMatch.game_stage
         val tableCards = gameMatch.mGame.state.tableCards

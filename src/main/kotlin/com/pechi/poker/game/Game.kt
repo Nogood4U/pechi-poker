@@ -56,7 +56,7 @@ data class Player(val name: String, var cards: List<PokerCard> = emptyList(), va
 
     @JsonProperty("totalMoney")
     fun totalMoney(): Int {
-        return coin100 + coin50 + coin25 + coin10
+        return (coin100 * 100) + (coin50 * 50) + (coin25 * 25) + (coin10 * 10)
     }
 
     fun placeBet(amount: Int): Bet {
@@ -143,6 +143,9 @@ data class GameMatch(var players: List<Player>, val name: String = "") {
     var bets: MutableMap<String, MutableList<Bet>> = HashMap()
     var totalBetToCall: Int = minStartBetAmount
     var turnPlayer: Int = 0
+    var started: Boolean = false
+    var round = 1
+
 
     fun dropPlayer(name: String): Boolean {
         val dropWhile = players.dropWhile {
@@ -156,8 +159,10 @@ data class GameMatch(var players: List<Player>, val name: String = "") {
     }
 
     fun join(player: Player) {
-        players += player
-        mGame.players = players
+        if (players.find { it.name == player.name } == null) {
+            players += player
+            mGame.players = players
+        }
     }
 
     fun start() {
@@ -165,6 +170,7 @@ data class GameMatch(var players: List<Player>, val name: String = "") {
         low = players[1]
         mGame.init()
         wairForStartBets()
+        started = true
     }
 
     fun blinds(): PokerCard {
@@ -266,8 +272,10 @@ data class GameMatch(var players: List<Player>, val name: String = "") {
                     if (acc == i) i else 0
                 }
 
-        if (allBets != 0) {
+        if (allBets != 0 && mGame.state.tableCards.size < 5) {
             game_stage = GAME_STAGE.DEALING
+        } else if (mGame.state.tableCards.size == 5) {
+            game_stage = GAME_STAGE.SHOWDOWN
         }
     }
 
